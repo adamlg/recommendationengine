@@ -1,0 +1,415 @@
+<head>
+<style>
+.topnavbar {background-color: yellow; width: 700px; height: 40px; float:center; border-style: solid; border-color: black; border-width: 2px;}
+.navbutton {border-style: solid; border-color: black; border-width: 2px; background-color: white; width: 120px; margin: 4px; height: 28px; display: inline-block; float: left; text-align:center;}
+#search {float:right;}
+.selected {background-color:red; !important;}
+.home,.recommendations,.ratedwines,.search {width: 700px; height: 650px; border-style: solid; border-color: black; border-width: 2px; position: relative; display:none;}
+.displayed {display:block; !important;}
+
+</style>
+
+
+
+
+
+
+<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+</head>
+
+<div class="topnavbar">
+	<div class="navbutton selected" id="home">Home</div>
+	<div class="navbutton" id="recommendations">Recommendations</div>
+	<div class="navbutton" id="ratedwines">Rated Wines</div>
+	<div class="navbutton" id="search">Search</div>
+</div>
+<div class="home displayed"><br>
+	Those boxes up top are for navigation - click on them to look around.
+	<div id="starterform"><br>First time here?  Start by rating the types of wine you like.
+	<br><br>
+	<div style="width:150px; height:30px">
+		<label>Red:</label>
+			<select id="redrating" style="float:right">
+				<option value=2.5>Not sure</option>
+				<option value=1>1</option>
+				<option value=2>2</option>
+				<option value=3>3</option>
+				<option value=4>4</option>
+				<option value=5>5</option>
+			</select>
+	</div>
+	<div style="width:150px; height:30px">
+		<label>White:</label>
+			<select id="whiterating" style="float:right">
+				<option value=2.5>Not sure</option>
+				<option value=1>1</option>
+				<option value=2>2</option>
+				<option value=3>3</option>
+				<option value=4>4</option>
+				<option value=5>5</option>
+			</select>
+	</div>
+	<button id="starterformsubmit">Submit your ratings</button>
+	<br><br>
+	<div>Yeah, yeah, I know there are other types of wine you might like (or hate).  That'll come later - this is just a demo.</div>
+	</div>
+</div>
+<div class="recommendations"><br>Here are some wines you might like.  You can filter them by wine type and rate them here.  If you ever change your mind about the rating, you can change it on the Rated Wines tab.<br>
+	<select id="winefilter">
+		<option value="all">All wines</option>
+		<option value="red">Only red wines</option>
+		<option value="white">Only white wines</option>
+	</select>
+</div>
+
+<div class="ratedwines"><br>If you have rated any wines, they will be listed here.  You can change the ratings here, or if you want to find some new wines, go to the Recommendations tab.</div>
+
+<div class="search"><br>Eventually that will be an actual search box up there on the menu - still working on that.</div>
+
+<script>
+$(document).ready(function() {
+	calculateProjections();
+	updateRecommendations();
+});
+
+
+
+
+function updateRecommendations() {
+	$(".recommendations").find(".winerecinfo").remove();
+	for (var i = 0; i < sortedArray.length; i++) {
+		var wineName = sortedArray[i][1];
+		if(userRatings[wineName]>0){
+			continue;
+		} else{
+			var wineRec = document.createElement("div");
+			wineRec.style.height = "35px";
+			wineRec.style.width = "550px";
+			wineRec.style.border = "1px solid black";
+			wineRec.className = "winerecinfo";
+			wineRec.id = wineName;
+			wineRec.innerHTML = '<label>'+wineName+'</label><button id="updaterating" style="float:right; margin-right:12px">Rate this wine</button><select id="'+wineName+'rating" style="float:right; margin-right:18px"><option value=10>Not sure</option><option value=1>1</option><option value=2>2</option><option value=3>3</option><option value=4>4</option><option value=5>5</option></select><span style="float:right; margin-right:18px">Projected rating:'+sortedArray[i][0].toFixed(2)+'</span><span style="float:right; margin-right:18px">Wine type: '+similarityMatrix[wineName]["type"];
+			$(".recommendations").append(wineRec);
+		}
+
+	};
+};
+
+$(".recommendations").on("click", "#updaterating", function(event) {
+	
+	var newRating = $(this).next().val();
+	var newID = $(this).next().attr("id");
+	if(newRating==2.5){
+		alert("You didn't even pick a rating!  Try again.")
+		alert(newRating);
+		alert($(this).attr("id"));
+	}
+	else {
+	var wineInfo = document.createElement("div");
+	wineInfo.style.height = "30px";
+	wineInfo.style.width = "380px";
+	wineInfo.style.border = "1px solid black";
+	wineInfo.className = "wineinfo";
+	wineInfo.id = $(event.target).parent().attr("id");
+	wineInfo.innerHTML = '<div><label>'+$(event.target).parent().attr("id")+':</label><button id="updaterating" style="float:right">Update rating</button><select id="'+newID+'" style="float:right"><option value=2.5>Not sure</option><option value=1>1</option><option value=2>2</option><option value=3>3</option><option value=4>4</option><option value=5>5</option></select></div>';
+	$(".ratedwines").append(wineInfo);
+	$(".ratedwines,#"+newID).val(newRating);
+	userRatings[$(event.target).parent().attr("id")] = newRating;
+	$(".recommendations").find("#"+$(event.target).parent().attr("id")).remove();
+	calculateProjections();
+	updateRecommendations();
+	alert("Your rating is stored in the Rated Wines tab, and your recommendations have been updated.  If you ever change your mind about that rating, you can go there at any time to update it.");
+	}
+	
+});
+
+$(".recommendations").on("change", "#winefilter", function() {
+	var filterType = $(this).val();
+	switch(filterType){
+		case "red":
+		$("span:contains('Wine type: red')").parent().css("display","auto");
+		$("span:contains('Wine type: white')").parent().css("display","none");
+		break;
+		case "white":
+		$("span:contains('Wine type: white')").parent().css("display","auto");
+		$("span:contains('Wine type: red')").parent().css("display","none");
+		break;
+		default:
+		$("span:contains('Wine type:')").parent().css("display","auto");
+		break;
+	};
+});
+	
+
+$(".ratedwines").on("click", "#updaterating", function(event) {
+	var updatedRating = $(this).next().val();
+	switch($(event.target).parent().parent().attr("id")){
+		case "redWineInfo":
+		for (var i = 0; i < wineIndex.length; i++) {
+			if(similarityMatrix[wineIndex[i]]["type"]="red"){
+				initialRatings[i]=updatedRating;
+			};
+		};
+		break;
+		case "whiteWineInfo":
+		for (var i = 0; i < wineIndex.length; i++) {
+			if(similarityMatrix[wineIndex[i]]["type"]="white"){
+				initialRatings[i]=updatedRating;
+			};
+		};
+		break;
+		default:
+		var wineInfoID = $(event.target).parent().parent().attr("id");
+		userRatings[wineInfoID] = updatedRating;
+	};
+	calculateProjections();
+	updateRecommendations();
+	alert("Your recommendations have been updated.  Go take a look at them in the Recommendations tab.");
+});
+
+
+$(".navbutton").on("click", function(e) {
+	var selection = e.target;
+	var selectedClass = selection.id;
+	$(".topnavbar").find(".selected").removeClass("selected");
+	$(selection).addClass("selected");
+	$(".displayed").removeClass("displayed");
+	$("."+selectedClass).addClass("displayed");
+});
+
+
+
+var similarityMatrix = {
+	Wine1: {
+		type: "red",
+		Wine2: -0.7135,
+		Wine3: 0.0770,
+		Wine4: -0.5328,
+		Wine5: -0.4279
+	},
+	Wine2: {
+		type: "red",
+		Wine1: -0.7135,
+		Wine3: 0.6393,
+		Wine4: -0.5524,
+		Wine5: -0.1133
+	},
+	Wine3: {
+		type: "red",
+		Wine1: 0.0770,
+		Wine2: 0.6393,
+		Wine4: -0.5523,
+		Wine5: -0.7768
+	},
+	Wine4: {
+		type: "white",
+		Wine1: -0.5328,
+		Wine2: -0.5524,
+		Wine3: -0.5523,
+		Wine5: -0.1662
+	},
+	Wine5: {
+		type: "white",
+		Wine1: -0.4279,
+		Wine2: -0.1133,
+		Wine3: -0.7768,
+		Wine4: -0.1662
+	}};
+
+var userRatings = {
+	Wine1: 0,
+	Wine2: 0,
+	Wine3: 0,
+	Wine4: 0,
+	Wine5: 0
+};
+
+var wineIndex = ["Wine1", "Wine2", "Wine3", "Wine4", "Wine5"];
+
+var projectedRatings = [];
+
+var initialRatings = [2.5, 2.5, 2.5, 2.5, 2.5];
+
+/*function addStartersToRatedWines() {
+	wineInfo = document.createElement("div");
+	wineInfo.style.border= "1px solid black";
+	wineInfo.innerHTML = '<div style="width:250px; height:30px"><label>White:</label><button id="updaterating" style="float:right">Update rating</button><select id="whiterating" style="float:right"><option value=2.5>Not sure</option><option value=1>1</option><option value=2>2</option><option value=3>3</option><option value=4>4</option><option value=5>5</option></select></div>';
+	/*var redRating = $("#redrating").val();
+	var whiteRating = $("#whiterating").val();
+	wineInfo.val(whiteRating);
+	$(".ratedwines").append(wineInfo);
+	$("#whiterating").val(whiteRating);
+
+}*/
+
+
+$(document).ready(function() {
+$(".home").on("click", "#starterformsubmit", function() {
+	var redRating = $("#redrating").val();
+	var whiteRating = $("#whiterating").val();
+	for (var i = 0; i < wineIndex.length; i++) {
+		switch(similarityMatrix[wineIndex[i]]["type"]){
+			case "red":
+			initialRatings[i]=redRating;
+			break;
+			case"white":
+			initialRatings[i]=whiteRating;
+			break;
+		}
+	};
+
+	var redWineInfo = document.createElement("div");
+	redWineInfo.className = "wineinfo";
+	redWineInfo.id = "redWineInfo";
+	redWineInfo.style.border= "1px solid black";
+	redWineInfo.style.width = "380px";
+	redWineInfo.style.height = "30px";
+	redWineInfo.innerHTML = '<div><label>Red wine in general:</label><button id="updaterating" style="float:right">Update rating</button><select id="redrating" style="float:right"><option value=2.5>Not sure</option><option value=1>1</option><option value=2>2</option><option value=3>3</option><option value=4>4</option><option value=5>5</option></select></div>';
+	$(".ratedwines").append(redWineInfo);
+	$(".ratedwines,#redrating").val(redRating);
+
+	var whiteWineInfo = document.createElement("div");
+	whiteWineInfo.className = "wineinfo";
+	whiteWineInfo.id = "whiteWineInfo";
+	whiteWineInfo.style.border= "1px solid black";
+	whiteWineInfo.style.width = "380px";
+	whiteWineInfo.style.height = "30px";
+	whiteWineInfo.innerHTML = '<div><label>White wine in general:</label><button id="updaterating" style="float:right">Update rating</button><select id="whiterating" style="float:right"><option value=2.5>Not sure</option><option value=1>1</option><option value=2>2</option><option value=3>3</option><option value=4>4</option><option value=5>5</option></select></div>';
+	$(".ratedwines").append(whiteWineInfo);
+	$(".ratedwines,#whiterating").val(whiteRating);
+
+
+
+	$("#starterform").css("display","none");
+	alert("Your ratings have been submitted.  You can change them at any time on the Rated Wines tab.");
+	calculateProjections();
+	updateRecommendations();
+	alert("Your recommendations have been updated.  Go take a look at them in the Recommendations tab.");
+});
+});
+
+
+/*new function calculateProjections() {
+	for (var i = 0; i < wineIndex.length; i++) {
+		alert(userRatings[wineIndex[i]])
+	};
+
+
+};
+*/
+
+$("#getrecs").on("click",function() {
+	var selectedWine = $("select[id=wines] option:selected").attr("value");
+	//alert(selectedWine);
+	//alert(similarityMatrix[selectedWine]["Wine5"]);
+
+});
+
+function calculateProjections(){ //this is all of the recommendation math.  It's awful, you guys.
+	for (var i = 0; i < wineIndex.length; i++) {
+		var wineName = wineIndex[i]; //to make the references a little cleaner
+		if(userRatings[wineName]>0){ //if the user has rated this wine already...
+			projectedRatings[wineName] = 0; //...we don't need a projected rating.
+		} else{
+			var recNumerator = 0; //this is the numerator for the weighted average...
+			var recDenominator = 0; //...and this is the denominator.
+			for (var j = 0; j < wineIndex.length; j++){ //iterate over all rated wines
+				var wineComparison = wineIndex[j]; //the rated wines will be used as comparisons
+				if(userRatings[wineComparison]>0){ //again, if the user has rated this wine already...
+					if(similarityMatrix[wineName][wineComparison]<0){ //...and the similarity rating is negative...
+						recNumerator += similarityMatrix[wineName][wineComparison]*(userRatings[wineComparison]-6); //...we make an adjustment so that a positive number is added to the numerator...
+						recDenominator += -similarityMatrix[wineName][wineComparison]; //...and a positive number is added to the denominator as well.  Otherwise the math gets all screwed up.
+					} else {
+						recNumerator += similarityMatrix[wineName][wineComparison]*userRatings[wineComparison]; //if the similarity rating is positive, we can just do the normal weighted average stuff.
+						recDenominator += similarityMatrix[wineName][wineComparison];  
+					}
+				}
+				else if(initialRatings[j]>0 && i!=j){ //here is where we use those initial wine type ratings - if they have been used, and if the initial wine rating isn't for the same wine we're trying to project.  Everything else works the same as above.
+					if(similarityMatrix[wineName][wineComparison]<0){ 
+						recNumerator += similarityMatrix[wineName][wineComparison]*(initialRatings[j]-6); 
+						recDenominator += -similarityMatrix[wineName][wineComparison]; 
+					} else {
+						recNumerator += similarityMatrix[wineName][wineComparison]*initialRatings[j]; 
+						recDenominator += similarityMatrix[wineName][wineComparison];  
+					}
+				}
+			}
+
+			projectedRatings[wineName] = recNumerator/recDenominator; //the last step of taking a weighted average is to calculate the fraction.
+
+		};
+		}
+	
+var ratingsArray = [];  //this bit is copied from Stack Overflow (http://stackoverflow.com/questions/5199901/how-to-sort-an-associative-array-by-its-values-in-javascript), and I'm too tired to parse it, but the purpose of this section is to make the projected ratings into an array that can more easily be sorted.
+
+for (var key in projectedRatings) ratingsArray.push([projectedRatings[key], key]);
+
+projectedRatings.sort(function(a, b) {
+    a = a[1];
+    b = b[1];
+
+    return a < b ? -1 : (a > b ? 1 : 0);
+});
+
+for (var i = 0; i < ratingsArray.length; i++) {
+    var key = ratingsArray[i][0];
+    var value = ratingsArray[i][1];
+};  //this is the end of the Stack Overflow section
+
+sortedArray = ratingsArray.sort(function(a,b){ //this arranges the ratings from highest to lowest in a multidimensional array, where sortedArray[0][0] is the highest rating and sortedArray[0][1] is the name of the associated wine
+	return b[0]-a[0];
+});
+//alert(sortedArray);
+//alert(sortedArray[0]);
+//alert(sortedArray[0][0]);
+//alert(sortedArray[0][1]);
+/*
+	var rankedWines = [];
+	var rankedWineIndices = [];
+	var indexForRankings = 0;
+	for (var i = 0; i < wineIndex.length; i++) {
+		for (var j = 0; j < sortedRankings.length; j++) {
+			if(projectedRatings[i]==sortedRankings[j]){
+				rankedWines[j] = wineIndex[i];
+				rankedWineIndices[j] = i;
+				indexForRankings += 1;
+			}
+		}	
+	};
+	for (var i = 0; i < sortedRankings.length; i++) {
+		alert(sortedRankings[i]);
+		alert(rankedWines[i]);
+		alert(rankedWineIndices[i]);
+	};*/
+/*/
+	for (var i = 0; i < wineIndex.length; i++) {
+		if(userRatings[wineIndex[i]]>0){
+			alert("User rated this a "+userRatings[wineIndex[i]])
+		}
+		else {
+			alert("We think you will rate this a "+projectedRatings[wineIndex[i]])
+		}
+	};
+	//*/
+};
+
+/*$(document).find(":button").on("click", function(event) {
+	alert(event.target);
+});*/
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
